@@ -9,18 +9,26 @@ import com.yet.spring.logger.EventLogger;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
+import java.util.Map;
+
 public class App {
     Client client;
-    EventLogger eventLogger;
+    EventLogger defaultLogger;
+    Map<EventType, EventLogger> eventLoggerMap;
 
-    public App(Client client, EventLogger eventLogger) {
+    public App(Client client,  EventLogger defaultLogger, Map<EventType, EventLogger> eventLoggerMap) {
         this.client = client;
-        this.eventLogger = eventLogger;
+        this.defaultLogger = defaultLogger;
+        this.eventLoggerMap = eventLoggerMap;
     }
 
-    void logEvent(Event event) {
+    void logEvent(Event event, EventType eventType) {
         String message = event.getMsg().replaceAll(client.getId(), client.getFullName());
         event.setMsg(message);
+        EventLogger eventLogger = eventLoggerMap.get(eventType);
+        if (eventLogger == null) {
+            eventLogger = defaultLogger;
+        }
         eventLogger.logEvent(event);
     }
 
@@ -30,13 +38,13 @@ public class App {
         App app = ctx.getBean(App.class);
         Event event = ctx.getBean(Event.class);
         event.setMsg("Some event for user 1");
-        app.logEvent(event);
+        app.logEvent(event, null);
         event = ctx.getBean(Event.class);
         event.setMsg("Some event for user 2");
-        app.logEvent(event);
+        app.logEvent(event, EventType.INFO);
         event = ctx.getBean(Event.class);
         event.setMsg("Some event for user 3");
-        app.logEvent(event);
+        app.logEvent(event, EventType.ERROR);
 
         ctx.close();
     }
